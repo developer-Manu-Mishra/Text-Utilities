@@ -20,11 +20,11 @@ function App() {
     })
     setTimeout(() => {
       setAlert(null)
-    }, 1500);
+    }, 1800);
   }
 
   useEffect(() => {
-    document.body.style.backgroundColor = mode === 'dark' ? '#222222' : 'white';
+    document.documentElement.setAttribute('data-theme', mode);
     localStorage.setItem(MODE_KEY, mode);
   }, [mode]);
 
@@ -39,14 +39,12 @@ function App() {
     }
   }
   return (
-    <>
+    <div className="app">
       <Navbar title="Text Utilities" mode={mode} toggleMode={toggleMode} />
-      <div className="conatiner my-3">
-        <Alert alert={alert} />
-        <TextForm showAlert={showAlert} heading="Enter Text To Analyze Below" mode={mode} />
-      </div>
-
-    </>
+      <Alert alert={alert} />
+      <TextForm showAlert={showAlert} heading="Enter Text To Analyze Below" mode={mode} />
+      <footer className="footer">Built with React · Your text never leaves this browser</footer>
+    </div>
 
   );
 }

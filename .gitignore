@@ -24,3 +24,6 @@ yarn-error.log*
 
 # dev server log
 /dev-server.log
+
+# generated screenshots
+/artifacts

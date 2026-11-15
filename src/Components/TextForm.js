@@ -36,14 +36,6 @@ export default function TextForm(props) {
     const textAreaRef = useRef(null)
     const fileInputRef = useRef(null)
 
-    const dark = props.mode === 'dark'
-    const textColor = dark ? 'white' : 'black'
-    const boxStyle = {
-        backgroundColor: dark ? '#222222' : 'white',
-        color: textColor,
-    }
-    const buttonClass = `btn btn-outline-${dark ? 'light' : 'primary'} mx-1 my-1`
-
     // Replaces the text while remembering the previous version so it can be undone.
     const applyText = (nextText, message) => {
         if (nextText === text) {
@@ -132,166 +124,204 @@ export default function TextForm(props) {
             props.showAlert('No Match Found', 'warning')
             return
         }
-        const matches = text.split(findText).length - 1
-        applyText(text.split(findText).join(replaceText), `Replaced ${matches} Occurrence${matches === 1 ? '' : 's'}`)
+        const matchesFound = text.split(findText).length - 1
+        applyText(
+            text.split(findText).join(replaceText),
+            `Replaced ${matchesFound} Occurrence${matchesFound === 1 ? '' : 's'}`
+        )
     }
 
-    const actions = [
-        { label: 'Convert To UpperCase', run: () => applyText(text.toUpperCase(), 'Converted To Uppercase') },
-        { label: 'Convert To LowerCase', run: () => applyText(text.toLowerCase(), 'Converted To Lowercase') },
-        { label: 'Sentence Case', run: () => applyText(toSentenceCase(text), 'Converted To Sentence Case') },
+    const groups = [
         {
-            label: 'Title Case',
-            run: () =>
-                applyText(
-                    text.replace(/\b\w/g, (letter) => letter.toUpperCase()),
-                    'Converted To Title Case'
-                ),
+            title: 'Change case',
+            actions: [
+                { label: 'UPPERCASE', run: () => applyText(text.toUpperCase(), 'Converted To Uppercase') },
+                { label: 'lowercase', run: () => applyText(text.toLowerCase(), 'Converted To Lowercase') },
+                { label: 'Sentence case', run: () => applyText(toSentenceCase(text), 'Converted To Sentence Case') },
+                {
+                    label: 'Title Case',
+                    run: () =>
+                        applyText(
+                            text.replace(/\b\w/g, (letter) => letter.toUpperCase()),
+                            'Converted To Title Case'
+                        ),
+                },
+            ],
         },
         {
-            label: 'Reverse Text',
-            run: () => applyText([...text].reverse().join(''), 'Text Has Been Reversed'),
+            title: 'Clean up',
+            actions: [
+                {
+                    label: 'Fix spacing',
+                    run: () => applyText(text.replace(/[ \t]+/g, ' ').trim(), 'Extra Spaces Removed'),
+                },
+                { label: 'No punctuation', run: () => applyText(text.replace(/[^\w\s]/g, ''), 'Punctuation Removed') },
+                { label: 'No numbers', run: () => applyText(text.replace(/[0-9]/g, ''), 'Numbers Removed') },
+                {
+                    label: 'Join lines',
+                    run: () => applyText(text.replace(/\s*\n\s*/g, ' ').trim(), 'Line Breaks Removed'),
+                },
+            ],
         },
         {
-            label: 'Remove Extra Spaces',
-            run: () => applyText(text.replace(/[ \t]+/g, ' ').trim(), 'Extra Spaces Removed'),
+            title: 'Other',
+            actions: [
+                { label: 'Reverse text', run: () => applyText([...text].reverse().join(''), 'Text Has Been Reversed') },
+            ],
         },
-        {
-            label: 'Remove Punctuation',
-            run: () => applyText(text.replace(/[^\w\s]/g, ''), 'Punctuation Removed'),
-        },
-        {
-            label: 'Remove Numbers',
-            run: () => applyText(text.replace(/[0-9]/g, ''), 'Numbers Removed'),
-        },
-        {
-            label: 'Remove Line Breaks',
-            run: () => applyText(text.replace(/\s*\n\s*/g, ' ').trim(), 'Line Breaks Removed'),
-        },
-        { label: 'Undo', run: handleUndoClick, disabled: !history.length },
     ]
 
     const stats = getStats(text)
     const matches = findText ? text.split(findText).length - 1 : 0
 
     return (
-        <>
-            <div className="container my-3" style={{ color: textColor }}>
-                <h3>{props.heading}</h3>
-                <div className="mb-3">
-                    <textarea
-                        className="form-control"
-                        rows="8"
-                        value={text}
-                        onChange={handleOnChange}
-                        style={boxStyle}
-                        id="text"
-                        ref={textAreaRef}
-                        placeholder="Type or paste your text here..."
-                    ></textarea>
+        <main className="shell">
+            <section className="hero">
+                <h1 className="hero__title">{props.heading}</h1>
+                <p className="hero__sub">
+                    Paste your text, pick a tool, and get clean, case-perfect copy in seconds. Everything runs
+                    locally in your browser — nothing is uploaded.
+                </p>
+                <div className="hero__badges">
+                    <span className="badge">{stats.words} words</span>
+                    <span className="badge">{stats.characters} characters</span>
+                    <span className="badge">{stats.readingTime} min read</span>
                 </div>
+            </section>
 
-                <div className="mb-3">
-                    {actions.map((action) => (
-                        <button
-                            key={action.label}
-                            className={buttonClass}
-                            onClick={action.run}
-                            disabled={action.disabled}
-                        >
-                            {action.label}
+            <section className="panel">
+                <div className="panel__head">
+                    <h2 className="panel__title">Your text</h2>
+                    <span className="panel__hint">Type, paste or open a .txt file</span>
+                </div>
+                <textarea
+                    className="editor"
+                    rows="8"
+                    value={text}
+                    onChange={handleOnChange}
+                    id="text"
+                    ref={textAreaRef}
+                    placeholder="Type or paste your text here..."
+                    aria-label="Text to analyze"
+                ></textarea>
+                <div className="editor-meta">
+                    <div className="editor-meta__actions">
+                        <button className="btn" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+                            Open .txt
                         </button>
-                    ))}
-                    <button className={buttonClass} onClick={handleClearClick}>
-                        Clear Text
-                    </button>
-                    <button className={buttonClass} onClick={handleCopyClick}>
-                        Copy Text
-                    </button>
-                    <button className={buttonClass} onClick={handleDownloadClick}>
-                        Download .txt
-                    </button>
-                    <button className={buttonClass} onClick={() => fileInputRef.current && fileInputRef.current.click()}>
-                        Open .txt
-                    </button>
-                    <input
-                        type="file"
-                        accept=".txt,text/plain"
-                        className="d-none"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                    />
+                        <button className="btn" onClick={handleDownloadClick}>
+                            Download .txt
+                        </button>
+                        <button className="btn" onClick={handleCopyClick}>
+                            Copy
+                        </button>
+                        <button className="btn btn--ghost" onClick={handleClearClick}>
+                            Clear
+                        </button>
+                    </div>
+                    <span>
+                        {stats.sentences} sentence{stats.sentences === 1 ? '' : 's'} · {stats.paragraphs} paragraph
+                        {stats.paragraphs === 1 ? '' : 's'}
+                    </span>
                 </div>
+                <input
+                    type="file"
+                    accept=".txt,text/plain"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    hidden
+                />
+            </section>
 
-                <div className="card my-3" style={{ ...boxStyle, border: `1px solid ${dark ? '#444' : '#dee2e6'}` }}>
-                    <div className="card-body">
-                        <h5 className="card-title">Find &amp; Replace</h5>
-                        <div className="row g-2 align-items-end">
-                            <div className="col-md-4">
-                                <label className="form-label" htmlFor="find-text">
-                                    Find
-                                </label>
-                                <input
-                                    id="find-text"
-                                    className="form-control"
-                                    value={findText}
-                                    onChange={(event) => setFindText(event.target.value)}
-                                    style={boxStyle}
-                                    placeholder="Word or phrase"
-                                />
-                            </div>
-                            <div className="col-md-4">
-                                <label className="form-label" htmlFor="replace-text">
-                                    Replace with
-                                </label>
-                                <input
-                                    id="replace-text"
-                                    className="form-control"
-                                    value={replaceText}
-                                    onChange={(event) => setReplaceText(event.target.value)}
-                                    style={boxStyle}
-                                    placeholder="Leave empty to delete"
-                                />
-                            </div>
-                            <div className="col-md-4">
-                                <button className={buttonClass} onClick={handleReplaceClick}>
-                                    Replace All
-                                </button>
-                                <span className="mx-2">{matches} match{matches === 1 ? '' : 'es'}</span>
+            <section className="panel">
+                <div className="panel__head">
+                    <h2 className="panel__title">Transform</h2>
+                    <button className="btn" onClick={handleUndoClick} disabled={!history.length}>
+                        Undo
+                    </button>
+                </div>
+                <div className="toolbar">
+                    {groups.map((group) => (
+                        <div className="tool-group" key={group.title}>
+                            <h3 className="tool-group__title">{group.title}</h3>
+                            <div className="tool-group__items">
+                                {group.actions.map((action) => (
+                                    <button key={action.label} className="btn" onClick={action.run}>
+                                        {action.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="panel">
+                <div className="panel__head">
+                    <h2 className="panel__title">Find &amp; Replace</h2>
+                    <span className="match-count">
+                        {matches} match{matches === 1 ? '' : 'es'}
+                    </span>
+                </div>
+                <div className="replace">
+                    <div className="field">
+                        <label htmlFor="find-text">Find</label>
+                        <input
+                            id="find-text"
+                            className="input"
+                            value={findText}
+                            onChange={(event) => setFindText(event.target.value)}
+                            placeholder="Word or phrase"
+                        />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="replace-text">Replace with</label>
+                        <input
+                            id="replace-text"
+                            className="input"
+                            value={replaceText}
+                            onChange={(event) => setReplaceText(event.target.value)}
+                            placeholder="Leave empty to delete"
+                        />
+                    </div>
+                    <div className="replace__action">
+                        <button className="btn btn--primary" onClick={handleReplaceClick}>
+                            Replace all
+                        </button>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div className="container my-3" style={{ color: textColor }}>
-                <h4>Your Text Summary</h4>
-                <div className="row g-3 my-1">
+            <section className="panel">
+                <div className="panel__head">
+                    <h2 className="panel__title">Your Text Summary</h2>
+                </div>
+                <div className="stats">
                     {[
                         { label: 'Words', value: stats.words },
                         { label: 'Characters', value: stats.characters },
                         { label: 'Characters (no spaces)', value: stats.charactersNoSpaces },
                         { label: 'Sentences', value: stats.sentences },
                         { label: 'Paragraphs', value: stats.paragraphs },
-                        { label: 'Reading Time', value: `${stats.readingTime} min` },
-                        { label: 'Speaking Time', value: `${stats.speakingTime} min` },
+                        { label: 'Reading time', value: `${stats.readingTime} min` },
+                        { label: 'Speaking time', value: `${stats.speakingTime} min` },
                     ].map((item) => (
-                        <div className="col-6 col-md-3" key={item.label}>
-                            <div
-                                className="card h-100"
-                                style={{ ...boxStyle, border: `1px solid ${dark ? '#444' : '#dee2e6'}` }}
-                            >
-                                <div className="card-body py-2">
-                                    <div className="fs-4">{item.value}</div>
-                                    <small>{item.label}</small>
-                                </div>
-                            </div>
+                        <div className="stat" key={item.label}>
+                            <div className="stat__value">{item.value}</div>
+                            <div className="stat__label">{item.label}</div>
                         </div>
                     ))}
                 </div>
-                <h4 className="text-center mt-3">Preview</h4>
-                <p style={{ whiteSpace: 'pre-wrap' }}>{text.trim() ? text : 'Enter Your Text To Preview Here'}</p>
-            </div>
-        </>
+            </section>
+
+            <section className="panel">
+                <div className="panel__head">
+                    <h2 className="panel__title">Preview</h2>
+                </div>
+                <p className={`preview${text.trim() ? '' : ' preview--empty'}`}>
+                    {text.trim() ? text : 'Your text will appear here…'}
+                </p>
+            </section>
+        </main>
     )
 }
